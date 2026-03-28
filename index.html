@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kasir — Pencatat Keuangan Pribadi</title>
+<title>Tabungan Savira Annas — Pencatat Keuangan Pribadi</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Mono:wght@300;400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -504,7 +504,7 @@
 <header>
   <div style="display:flex;align-items:center;gap:10px;">
     <button class="hamburger" onclick="openDrawer()">☰</button>
-    <div class="logo">Kasir <span>/ pencatat keuangan</span></div>
+    <div class="logo">Tabungan Savira Annas <span>/ pencatat keuangan</span></div>
   </div>
   <div class="header-date" id="headerDate"></div>
 </header>
@@ -1366,7 +1366,7 @@ function exportCSV() {
   const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
-  a.download = 'kasir_export.csv';
+  a.download = 'Tabungan_export.csv';
   a.click();
 }
 
