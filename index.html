@@ -710,6 +710,80 @@
   /* ─── DIVIDER ─── */
   .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
+  /* ─── ACTIVITY LOG ─── */
+  .log-container { display: flex; flex-direction: column; gap: 6px; }
+  .log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: background .15s;
+    animation: logFadeIn .3s ease;
+  }
+  @keyframes logFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .log-entry:hover { background: var(--surface3); }
+  .log-icon {
+    font-size: 18px;
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .log-icon.add    { background: rgba(0,200,150,0.12); }
+  .log-icon.edit   { background: rgba(108,99,255,0.12); }
+  .log-icon.delete { background: rgba(255,107,107,0.12); }
+  .log-icon.nav    { background: rgba(59,158,255,0.1); }
+  .log-icon.user   { background: rgba(255,159,67,0.1); }
+  .log-icon.akun   { background: rgba(245,59,127,0.1); }
+  .log-icon.system { background: rgba(90,96,128,0.1); }
+  .log-icon.lunas  { background: rgba(0,200,150,0.12); }
+  .log-body { flex: 1; min-width: 0; }
+  .log-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .log-detail { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .log-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .log-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 600;
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+  .log-badge.add    { background: rgba(0,200,150,0.14); color: var(--green); }
+  .log-badge.edit   { background: rgba(108,99,255,0.14); color: var(--purple); }
+  .log-badge.delete { background: rgba(255,107,107,0.14); color: var(--red); }
+  .log-badge.nav    { background: rgba(59,158,255,0.14); color: var(--blue); }
+  .log-badge.user   { background: rgba(255,159,67,0.14); color: var(--orange); }
+  .log-filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .log-empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
+  .log-empty .icon { font-size: 36px; margin-bottom: 10px; }
+  .log-stats-mini { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .log-stat-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+  }
+  .log-stat-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+
   @media (max-width: 768px) {
     .shell { grid-template-columns: 1fr; }
     aside { display: none; }
@@ -765,6 +839,7 @@
       <button class="nav-btn" onclick="showPage('grafik');closeDrawer()"><span class="icon">◐</span> Grafik & Analisis</button>
       <button class="nav-btn" onclick="showPage('akun');closeDrawer()"><span class="icon">◉</span> Kelola Akun</button>
       <button class="nav-btn" onclick="showPage('settings');closeDrawer()"><span class="icon">⚙</span> Pengaturan</button>
+      <button class="nav-btn" onclick="showPage('log');closeDrawer()"><span class="icon">📋</span> Log Aktivitas</button>
     </div>
     <div class="nav-section">
       <div class="nav-label">Akun Saya</div>
@@ -795,6 +870,7 @@
       <button class="nav-btn" onclick="showPage('grafik')"><span class="icon">◐</span> Grafik & Analisis</button>
       <button class="nav-btn" onclick="showPage('akun')"><span class="icon">◉</span> Kelola Akun</button>
       <button class="nav-btn" onclick="showPage('settings')"><span class="icon">⚙</span> Pengaturan</button>
+      <button class="nav-btn" onclick="showPage('log')"><span class="icon">📋</span> Log Aktivitas</button>
     </div>
     <div class="nav-section">
       <div class="nav-label">Akun Saya</div>
@@ -1206,6 +1282,55 @@
       </div>
     </div>
 
+    <!-- ═══ LOG AKTIVITAS ═══ -->
+    <div id="page-log" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="section-title">Log Aktivitas 📋</div>
+          <div class="section-sub">rekam jejak semua perubahan &amp; aktivitas</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="exportLog()">↓ Export Log</button>
+          <button class="btn btn-danger btn-sm" onclick="clearLog()">🗑 Hapus Log</button>
+        </div>
+      </div>
+      <!-- Mini stats -->
+      <div class="log-stats-mini" id="logStatsMini"></div>
+      <!-- Filters -->
+      <div class="log-filter-row">
+        <select id="log-filter-type" onchange="renderLog()" style="max-width:160px;font-size:12px;">
+          <option value="">Semua Aktivitas</option>
+          <option value="add">Tambah</option>
+          <option value="edit">Edit / Perubahan</option>
+          <option value="delete">Hapus</option>
+          <option value="akun">Akun</option>
+          <option value="hutang">Hutang/Piutang</option>
+          <option value="user">Pengguna</option>
+          <option value="nav">Navigasi</option>
+          <option value="system">Sistem</option>
+        </select>
+        <select id="log-filter-user" onchange="renderLog()" style="max-width:140px;font-size:12px;">
+          <option value="">Semua User</option>
+          <option value="Annas">Annas</option>
+          <option value="Savira">Savira</option>
+          <option value="Bersama">Bersama</option>
+          <option value="system">Sistem</option>
+        </select>
+        <input type="text" id="log-search" oninput="renderLog()" placeholder="Cari aktivitas..." style="max-width:200px;font-size:12px;">
+        <span id="log-count" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;"></span>
+      </div>
+      <div class="form-card" style="padding:16px;">
+        <div class="log-container" id="logContainer"></div>
+        <div id="logEmpty" class="log-empty" style="display:none;">
+          <div class="icon">📋</div>
+          <p>Belum ada aktivitas tercatat</p>
+        </div>
+        <div id="logLoadMore" style="text-align:center;margin-top:12px;display:none;">
+          <button class="btn btn-ghost btn-sm" onclick="logPage++;renderLog()">↓ Muat lebih banyak</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1454,6 +1579,8 @@ async function loadAllData() {
     populateKategoriSelects();
     renderDashboard();
     renderSettings();
+    addLog('system', 'data_load', 'Data berhasil dimuat dari server',
+      `${data.akun.length} akun, ${data.transaksi.length} transaksi, ${data.hutang.length} hutang/piutang`, 'system');
   } catch(e) {
     hideLoading();
     // Fallback to localStorage
@@ -1471,6 +1598,8 @@ async function loadAllData() {
     populateKategoriSelects();
     renderDashboard();
     renderSettings();
+    addLog('system', 'data_load_offline', 'Data dimuat dari penyimpanan lokal (mode offline)',
+      `${data.akun.length} akun, ${data.transaksi.length} transaksi`, 'system');
     toast('Mode offline — data lokal', 'info');
   }
 }
@@ -1500,6 +1629,7 @@ function userClass(u) {
 // ══════════════════════════════════════════════
 function cycleActiveUser() {
   const users = ['Annas', 'Savira'];
+  const prev = activeUser;
   const idx = users.indexOf(activeUser);
   activeUser = users[(idx + 1) % users.length];
   updateHeaderUser();
@@ -1509,6 +1639,7 @@ function cycleActiveUser() {
       if (opt.value === activeUser) { sel.value = activeUser; break; }
     }
   });
+  addLog('user', 'user_switch', `Ganti user aktif`, `${prev} → ${activeUser}`, activeUser);
   toast(`Aktif sebagai: ${activeUser}`, 'info');
 }
 
@@ -1538,7 +1669,8 @@ function showPage(name) {
       (name === 'kalender' && t.includes('kalender')) ||
       (name === 'grafik' && t.includes('grafik')) ||
       (name === 'akun' && t.includes('kelola')) ||
-      (name === 'settings' && t.includes('pengaturan'))
+      (name === 'settings' && t.includes('pengaturan')) ||
+      (name === 'log' && t.includes('log'))
     ) b.classList.add('active');
   });
   document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
@@ -1552,6 +1684,12 @@ function showPage(name) {
   if (name === 'hutang') renderHutang();
   if (name === 'settings') renderSettings();
   if (name === 'input') { populateSelects(); populateKategoriSelects(); }
+  if (name === 'log') { logPage = 1; renderLog(); }
+  // Log navigation (skip logging the log page itself to avoid noise)
+  const pageNames = { dashboard:'Dashboard', input:'Catat Transaksi', histori:'Histori',
+    hutang:'Hutang & Piutang', kalender:'Kalender', grafik:'Grafik & Analisis',
+    akun:'Kelola Akun', settings:'Pengaturan' };
+  if (pageNames[name]) addLog('nav', 'page_visit', `Buka halaman ${pageNames[name]}`, '', activeUser);
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -1645,6 +1783,7 @@ function simpanKategoriBaru() {
   else document.getElementById('out-jenis').value = name;
   closeModal('modalKategori');
   renderSettings();
+  addLog('kategori', 'kategori_add', `Kategori ${type} ditambahkan: ${name}`, `Via form input`);
   toast(`Kategori "${name}" ditambahkan ✓`, 'success');
 }
 
@@ -1661,6 +1800,7 @@ function tambahKategoriDariSettings(type) {
   saveLocal();
   populateKategoriSelects();
   renderSettings();
+  addLog('kategori', 'kategori_add', `Kategori ${type} ditambahkan: ${name}`, `Via pengaturan`);
   toast(`Kategori "${name}" ditambahkan ✓`, 'success');
 }
 
@@ -1673,6 +1813,7 @@ function hapusKategori(type, name) {
   saveLocal();
   populateKategoriSelects();
   renderSettings();
+  addLog('delete', 'kategori_delete', `Kategori ${type} dihapus: ${name}`, '');
   toast(`Kategori "${name}" dihapus`, 'error');
 }
 
@@ -1687,6 +1828,7 @@ function tambahUser() {
   saveLocal();
   populateKategoriSelects();
   renderSettings();
+  addLog('user', 'user_add', `User baru ditambahkan: ${name}`, '');
   toast(`User "${name}" ditambahkan ✓`, 'success');
 }
 
@@ -1696,6 +1838,7 @@ function hapusUser(name) {
   saveLocal();
   populateKategoriSelects();
   renderSettings();
+  addLog('user', 'user_delete', `User dihapus: ${name}`, '');
   toast(`User "${name}" dihapus`, 'error');
 }
 
@@ -1768,6 +1911,8 @@ async function simpanTransaksi(type) {
     saveLocal();
     hideLoading();
     updateSidebar();
+    addLog('add', 'transaksi_add', `Transaksi ${tx.type} ditambahkan`,
+      `${tx.nama} • ${formatRp(tx.nominal)} • ${tx.date}`, tx.user);
     toast('Transaksi berhasil disimpan ✓', 'success');
     resetForms();
     setTodayDates();
@@ -1777,6 +1922,8 @@ async function simpanTransaksi(type) {
     saveLocal();
     hideLoading();
     updateSidebar();
+    addLog('add', 'transaksi_add', `Transaksi ${tx.type} ditambahkan (offline)`,
+      `${tx.nama} • ${formatRp(tx.nominal)} • ${tx.date}`, tx.user);
     toast('Transaksi disimpan (offline) ✓', 'success');
     resetForms();
     setTodayDates();
@@ -1851,6 +1998,10 @@ async function simpanEditTransaksi() {
     });
     if (akun) await updateAkunSaldo(akun.id, akun.saldo);
   } catch(e) { /* fallback local */ }
+  const diffParts = [];
+  if (oldNominal !== newNominal) diffParts.push(`nominal: ${formatRp(oldNominal)} → ${formatRp(newNominal)}`);
+  addLog('edit', 'transaksi_edit', `Edit transaksi: ${tx.nama}`,
+    diffParts.length ? diffParts.join(', ') : `${tx.type} • ${formatRp(tx.nominal)} • ${tx.date}`, tx.user);
   saveLocal();
   hideLoading();
   closeModal('modalEditTx');
@@ -1897,6 +2048,8 @@ async function hapusTransaksi(id) {
   hideLoading();
   updateSidebar();
   renderHistori();
+  addLog('delete', 'transaksi_delete', `Transaksi dihapus: ${tx.nama}`,
+    `${tx.type} • ${formatRp(tx.nominal)} • ${tx.date}`, tx.user);
   toast('Transaksi dihapus','error');
 }
 
@@ -1951,6 +2104,8 @@ async function simpanAkun() {
     } catch(e) { /* offline */ }
     const a = data.akun.find(x => x.id === editId);
     if (a) { a.nama = nama; a.saldo = saldo; a.jenis = jenis; a.icon = icon; a.user = user; }
+    addLog('akun', 'akun_edit', `Akun diperbarui: ${nama}`,
+      `${jenis} • Saldo: ${formatRp(saldo)} • Pemilik: ${user}`);
     toast('Akun diperbarui ✓','success');
   } else {
     // Add
@@ -1959,6 +2114,8 @@ async function simpanAkun() {
       await sbFetch('akun', { method: 'POST', body: JSON.stringify({ id, nama, saldo, icon, jenis, user }) });
     } catch(e) { /* offline */ }
     data.akun.push({ id, nama, saldo, icon, jenis, user });
+    addLog('akun', 'akun_add', `Akun baru ditambahkan: ${nama}`,
+      `${jenis} • Saldo awal: ${formatRp(saldo)} • Pemilik: ${user}`);
     toast('Akun berhasil ditambahkan ✓','success');
   }
   saveLocal();
@@ -1970,6 +2127,7 @@ async function simpanAkun() {
 
 async function hapusAkun(id) {
   if (!confirm('Hapus akun ini? Semua transaksi terkait juga akan dihapus.')) return;
+  const akunDel = data.akun.find(a=>a.id===id);
   showLoading('Menghapus akun...');
   try {
     await sbFetch(`transaksi?or=(akun.eq.${id},akun_tujuan.eq.${id})`, { method:'DELETE', prefer:'return=minimal' });
@@ -1981,6 +2139,8 @@ async function hapusAkun(id) {
   hideLoading();
   renderAkun();
   updateSidebar();
+  addLog('delete', 'akun_delete', `Akun dihapus: ${akunDel?.nama || id}`,
+    `${akunDel?.jenis || ''} • Saldo terakhir: ${formatRp(akunDel?.saldo || 0)}`);
   toast('Akun dihapus','error');
 }
 
@@ -2072,10 +2232,14 @@ async function simpanHutang() {
   if (editId) {
     const h = data.hutang.find(x => x.id === editId);
     if (h) { h.jenis = jenis; h.nama = nama; h.nominal = nominal; h.tanggal = tanggal; h.jatuhTempo = jatuhTempo; h.user = user; h.akun = akun; h.catatan = catatan; }
+    addLog('hutang', 'hutang_edit', `Edit ${jenis}: ${nama}`,
+      `${formatRp(nominal)} • Tanggal: ${tanggal}`, user);
     toast('Hutang/piutang diperbarui ✓','success');
   } else {
     const id = 'h' + Date.now();
     data.hutang.push({ id, jenis, nama, nominal, tanggal, jatuhTempo, user, akun, catatan, status: 'aktif' });
+    addLog('hutang', 'hutang_add', `${jenis === 'hutang' ? 'Hutang' : 'Piutang'} baru: ${nama}`,
+      `${formatRp(nominal)} • Tanggal: ${tanggal}${jatuhTempo ? ' • Jatuh tempo: '+jatuhTempo : ''}`, user);
     toast('Hutang/piutang disimpan ✓','success');
   }
   saveLocal();
@@ -2089,14 +2253,19 @@ function lunasHutang(id) {
   if (h) { h.status = h.status === 'lunas' ? 'aktif' : 'lunas'; }
   saveLocal();
   renderHutang();
+  addLog('lunas', 'hutang_status', `${h.jenis} ditandai ${h.status}: ${h.nama}`,
+    `${formatRp(h.nominal)}`, h.user);
   toast(h.status === 'lunas' ? 'Ditandai lunas ✓' : 'Dikembalikan ke aktif', 'info');
 }
 
 function hapusHutang(id) {
   if (!confirm('Hapus data ini?')) return;
+  const h = data.hutang.find(x => x.id === id);
   data.hutang = data.hutang.filter(h => h.id !== id);
   saveLocal();
   renderHutang();
+  addLog('delete', 'hutang_delete', `${h?.jenis || 'hutang'} dihapus: ${h?.nama || id}`,
+    `${formatRp(h?.nominal || 0)}`, h?.user);
   toast('Data dihapus','error');
 }
 
@@ -2664,6 +2833,7 @@ function setTodayDates() {
 }
 
 async function init() {
+  loadLog();
   const now = new Date();
   document.getElementById('headerDate').textContent = now.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   document.getElementById('dashDate').textContent = now.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
@@ -2671,7 +2841,152 @@ async function init() {
   setTxType('pemasukan');
   setHutangTab('hutang');
   updateHeaderUser();
+  addLog('system', 'app_init', 'Aplikasi dibuka', now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}), 'system');
   await loadAllData();
+}
+
+// ══════════════════════════════════════════════
+//  LOG AKTIVITAS ENGINE
+// ══════════════════════════════════════════════
+let activityLog = [];
+let logPage = 1;
+const LOG_PER_PAGE = 30;
+const LOG_MAX = 500; // max entries kept
+
+function loadLog() {
+  try {
+    activityLog = JSON.parse(localStorage.getItem('activity_log') || '[]');
+  } catch(e) { activityLog = []; }
+}
+
+function saveLog() {
+  if (activityLog.length > LOG_MAX) activityLog = activityLog.slice(0, LOG_MAX);
+  localStorage.setItem('activity_log', JSON.stringify(activityLog));
+}
+
+function addLog(category, action, title, detail = '', user = null) {
+  const entry = {
+    id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+    ts: new Date().toISOString(),
+    category,   // add | edit | delete | nav | user | akun | hutang | system | lunas
+    action,     // action key e.g. 'transaksi_add'
+    title,
+    detail,
+    user: user || activeUser || 'system'
+  };
+  activityLog.unshift(entry);
+  saveLog();
+  // Update live badge if on log page
+  if (document.getElementById('page-log')?.classList.contains('active')) {
+    renderLog();
+  }
+}
+
+function tsFormat(isoStr) {
+  const d = new Date(isoStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return 'baru saja';
+  if (diff < 3600) return Math.floor(diff/60) + ' mnt lalu';
+  if (diff < 86400) return Math.floor(diff/3600) + ' jam lalu';
+  if (diff < 172800) return 'kemarin';
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) +
+    ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+function logCategoryIcon(cat) {
+  const map = {
+    add: '＋', edit: '✏️', delete: '✕', nav: '◈', user: '👤',
+    akun: '🏦', hutang: '⚖️', system: '⚙️', lunas: '✅', kategori: '🏷️'
+  };
+  return map[cat] || '•';
+}
+
+function renderLog() {
+  const filterType = document.getElementById('log-filter-type')?.value || '';
+  const filterUser = document.getElementById('log-filter-user')?.value || '';
+  const search = (document.getElementById('log-search')?.value || '').toLowerCase();
+
+  let logs = activityLog;
+  if (filterType) logs = logs.filter(l => l.category === filterType || l.action.includes(filterType));
+  if (filterUser) logs = logs.filter(l => l.user === filterUser);
+  if (search) logs = logs.filter(l =>
+    l.title.toLowerCase().includes(search) ||
+    l.detail.toLowerCase().includes(search) ||
+    l.action.toLowerCase().includes(search)
+  );
+
+  // Stats mini
+  const stats = { add:0, edit:0, delete:0, nav:0, akun:0, hutang:0, user:0, system:0 };
+  activityLog.forEach(l => { if(stats[l.category]!==undefined) stats[l.category]++; });
+  document.getElementById('logStatsMini').innerHTML = [
+    { label:'Tambah', key:'add', color:'#00c896' },
+    { label:'Edit', key:'edit', color:'#6c63ff' },
+    { label:'Hapus', key:'delete', color:'#ff6b6b' },
+    { label:'Akun', key:'akun', color:'#f53b7f' },
+    { label:'Hutang', key:'hutang', color:'#ff9f43' },
+    { label:'Sistem', key:'system', color:'#9aa0c0' },
+  ].map(s => `<div class="log-stat-chip">
+    <div class="dot" style="background:${s.color}"></div>
+    ${s.label}: <strong>${stats[s.key]}</strong>
+  </div>`).join('') + `<div class="log-stat-chip"><div class="dot" style="background:var(--text3)"></div>Total: <strong>${activityLog.length}</strong></div>`;
+
+  const countEl = document.getElementById('log-count');
+  if (countEl) countEl.textContent = `${logs.length} entri`;
+
+  const visible = logs.slice(0, logPage * LOG_PER_PAGE);
+  const container = document.getElementById('logContainer');
+  const empty = document.getElementById('logEmpty');
+  const loadMore = document.getElementById('logLoadMore');
+
+  if (!logs.length) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    if(loadMore) loadMore.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  if(loadMore) loadMore.style.display = logs.length > visible.length ? 'block' : 'none';
+
+  container.innerHTML = visible.map(l => {
+    const userBadge = l.user && l.user !== 'system'
+      ? `<span class="log-badge ${l.category}">${l.user}</span>`
+      : '';
+    return `<div class="log-entry">
+      <div class="log-icon ${l.category}">${logCategoryIcon(l.category)}</div>
+      <div class="log-body">
+        <div class="log-title">${l.title}${userBadge}</div>
+        ${l.detail ? `<div class="log-detail">${l.detail}</div>` : ''}
+      </div>
+      <div class="log-time">${tsFormat(l.ts)}</div>
+    </div>`;
+  }).join('');
+}
+
+function clearLog() {
+  if (!confirm('Hapus semua log aktivitas? Tindakan ini tidak dapat dibatalkan.')) return;
+  activityLog = [];
+  saveLog();
+  logPage = 1;
+  renderLog();
+  toast('Log aktivitas dihapus', 'error');
+}
+
+function exportLog() {
+  if (!activityLog.length) { toast('Tidak ada log untuk diekspor','error'); return; }
+  const rows = [['Waktu','Kategori','Aksi','Judul','Detail','User']];
+  activityLog.forEach(l => {
+    rows.push([
+      new Date(l.ts).toLocaleString('id-ID'),
+      l.category, l.action, l.title, l.detail, l.user
+    ]);
+  });
+  const csv = rows.map(r => r.map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = `ActivityLog_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  addLog('system','log_export','Log diekspor ke CSV',`${activityLog.length} entri`,'system');
 }
 
 init();
