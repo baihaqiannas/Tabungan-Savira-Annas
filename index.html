@@ -1540,7 +1540,7 @@ async function loadAllData() {
   try {
     const [akuns, txs] = await Promise.all([
       sbFetch('akun?order=created_at.asc'),
-      sbFetch('transaksi?order=created_at.desc')
+      sbFetch('transaksi?order=created_at.desc&limit=5000')
     ]);
     data.akun = akuns.map(a => ({
       id: a.id, nama: a.nama, saldo: Number(a.saldo),
@@ -1573,6 +1573,9 @@ async function loadAllData() {
     const savedUsers = localStorage.getItem('user_list');
     if (savedUsers) userList = JSON.parse(savedUsers);
 
+    // ✅ FIX: Cache ke localStorage setiap kali load sukses dari Supabase
+    saveLocal();
+
     hideLoading();
     updateSidebar();
     populateSelects();
@@ -1581,12 +1584,17 @@ async function loadAllData() {
     renderSettings();
     addLog('system', 'data_load', 'Data berhasil dimuat dari server',
       `${data.akun.length} akun, ${data.transaksi.length} transaksi, ${data.hutang.length} hutang/piutang`, 'system');
+    toast(`✓ Data dimuat (${data.transaksi.length} transaksi)`, 'success');
   } catch(e) {
     hideLoading();
-    // Fallback to localStorage
-    data.akun = JSON.parse(localStorage.getItem('akun_data') || '[]');
-    data.transaksi = JSON.parse(localStorage.getItem('tx_data') || '[]');
-    data.hutang = JSON.parse(localStorage.getItem('hutang_data') || '[]');
+    console.error('[Kasir] Supabase load error:', e.message);
+    // ✅ FIX: Fallback ke localStorage cache — data tidak hilang saat reload
+    const cachedAkun = localStorage.getItem('akun_data');
+    const cachedTx   = localStorage.getItem('tx_data');
+    const cachedHutang = localStorage.getItem('hutang_data');
+    data.akun     = cachedAkun   ? JSON.parse(cachedAkun)   : [];
+    data.transaksi = cachedTx    ? JSON.parse(cachedTx)     : [];
+    data.hutang   = cachedHutang ? JSON.parse(cachedHutang) : [];
     const savedKatIn = localStorage.getItem('kategori_pemasukan');
     if (savedKatIn) kategoriPemasukan = JSON.parse(savedKatIn);
     const savedKatOut = localStorage.getItem('kategori_pengeluaran');
@@ -1598,9 +1606,13 @@ async function loadAllData() {
     populateKategoriSelects();
     renderDashboard();
     renderSettings();
-    addLog('system', 'data_load_offline', 'Data dimuat dari penyimpanan lokal (mode offline)',
-      `${data.akun.length} akun, ${data.transaksi.length} transaksi`, 'system');
-    toast('Mode offline — data lokal', 'info');
+    addLog('system', 'data_load_offline', 'Data dimuat dari cache lokal (Supabase tidak terjangkau)',
+      `${data.akun.length} akun, ${data.transaksi.length} transaksi • Error: ${e.message}`, 'system');
+    if (data.transaksi.length > 0) {
+      toast(`⚠ Offline — ${data.transaksi.length} transaksi dari cache lokal`, 'info');
+    } else {
+      toast('⚠ Gagal koneksi & tidak ada cache. Cek internet.', 'error');
+    }
   }
 }
 
@@ -1917,14 +1929,15 @@ async function simpanTransaksi(type) {
     resetForms();
     setTodayDates();
   } catch(e) {
-    // Fallback: save locally
+    // ✅ FIX: Simpan ke localStorage + beri tahu user ada masalah
+    console.error('[Kasir] Gagal simpan ke Supabase:', e.message);
     data.transaksi.unshift(tx);
     saveLocal();
     hideLoading();
     updateSidebar();
-    addLog('add', 'transaksi_add', `Transaksi ${tx.type} ditambahkan (offline)`,
-      `${tx.nama} • ${formatRp(tx.nominal)} • ${tx.date}`, tx.user);
-    toast('Transaksi disimpan (offline) ✓', 'success');
+    addLog('add', 'transaksi_add', `Transaksi ${tx.type} ditambahkan (offline — sync pending)`,
+      `${tx.nama} • ${formatRp(tx.nominal)} • ${tx.date} • Error: ${e.message}`, tx.user);
+    toast(`⚠ Tersimpan lokal — belum tersinkron ke server. Cek koneksi.`, 'info');
     resetForms();
     setTodayDates();
   }
@@ -2017,7 +2030,16 @@ async function updateAkunSaldo(id, saldo) {
       prefer: 'return=minimal',
       body: JSON.stringify({ saldo })
     });
-  } catch(e) { /* offline */ }
+    // Update cache lokal juga
+    const a = data.akun.find(x => x.id === id);
+    if (a) a.saldo = saldo;
+    saveLocal();
+  } catch(e) {
+    console.error('[Kasir] Gagal update saldo akun:', id, e.message);
+    // Tetap update lokal
+    const a = data.akun.find(x => x.id === id);
+    if (a) { a.saldo = saldo; saveLocal(); }
+  }
 }
 
 async function hapusTransaksi(id) {
